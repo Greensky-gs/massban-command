@@ -1,6 +1,6 @@
 module.exports.help = {
     name: "massban",
-    description: "Permet de bannir plusieurs membres à la fois",
+    description: "ban multiples members",
     aliases: ['multipleban'],
     permissions: ['ban_members'],
     private: false,
@@ -9,8 +9,6 @@ module.exports.help = {
 };
 
 const Discord = require('discord.js');
-const functions = require('../../assets/functions');
-const embeds = require('../../assets/embeds');
 
 /**
  * @param {Discord.Message} message 
@@ -19,19 +17,22 @@ const embeds = require('../../assets/embeds');
 module.exports.run = (message, args, client, prefix) => {
     if (args.length === 0) return message.channel.send({ embeds: [
         new Discord.MessageEmbed()
-            .setTitle("Arguments insuffisants")
+            .setTitle("Invalid args")
             .setColor('RED')
             .setTimestamp()
             .setFooter(message.author.username, message.author.avatarURL({ dynamic: true }))
             .setAuthor(message.guild.name, message.guild.icon ? message.guild.iconURL({dynamic: true}) : message.author.avatarURL({dynamic: true}))
-            .setDescription(`Veuillez saisir des arguments : au moins **2** membres et la raison.\n\nExemple : \`${prefix}massban @user1 @user2 @user3 userid4 mauvaise attitude\``)
+            .setDescription(`You need to specify at least **2 members** and a reason\n\nExemple : \`${prefix}massban @user1 @user2 @user3 userid4 here is the reason\``)
     ] });
 
     const members = [];
+    //create an array for all members seleceted
+    
 
     if (message.mentions.members.size > 0) {
         message.mentions.members.forEach((member) => {
             members.push(member);
+            //push the member into array
         });
     };
 
@@ -48,14 +49,17 @@ module.exports.run = (message, args, client, prefix) => {
     go = true;
     members.forEach((member) => {
         if (!member.bannable) go = false;
-        if (functions.compareRoles(member, message.member) == false) go = false;    
+        //Here we check if members are bannable
+        if (member.roles.highest.position >= message.member.roles.highest.position == false) go = false;    
+        //check the roles of members
+        // >= is MORE or EQUAL
     });
 
     if (go == false) {
         return message.channel.send({ embeds: [
             new Discord.MessageEmbed()
-                .setTitle(":x: Membre imbanissable.")
-                .setDescription(`Un ou plusieurs des ${members.length} membres à bannir ne peut(peuvent) pas être banni(s).\nDeux raisons peuvent être à l'origine de ceci :\n**1)** Je n'ai pas les permissions nécéssaires\n**2)**Ce(s) membre(s) est(sont) supérieur(s) ou égal(égaux) à vous dans la hiérarchie des rôles`)
+                .setTitle(":x: inbannable member(s).")
+                .setDescription(`One or some of ${members.length} members can't be banned.\nThere are two reason :\n**1)** I haven't permissions.\n**2)**Theses members are superior or equal to you in role hierarchy**`)
                 .setTimestamp()
                 .setFooter(message.author.username, message.author.avatarURL({ dynamic: true }))
                 .setColor('RED')
@@ -71,6 +75,7 @@ module.exports.run = (message, args, client, prefix) => {
         if (!member) {
             indexStop = i;
             i = args.length + 1;
+            //define reason here
         };
         i++;
     };
@@ -78,23 +83,22 @@ module.exports.run = (message, args, client, prefix) => {
     const argsArray = args.slice(indexStop+1);
     reason = argsArray.join(' ');
     
-    if (reason) return message.channel.send({ embeds: [embeds.noReason(message.author)] });
+    if (reason) return message.channel.send({ content: 'Please specify a reason' });
     let total = members.length;
 
     members.forEach((x) => {
-        const emojis = require('../../assets/emojis.json');
-
         x.send({ embeds: [
             new Discord.MessageEmbed()
                 .setTitle("Ban")
-                .setDescription(`${emojis.ba}${emojis.nn}${emojis.ed}\nVous avez été banni de ${message.guild.name} pour la raison \`\`\`${reason}\`\`\``)
+                .setDescription(`You are banned from ${message.guild.name} because \`\`\`${reason}\`\`\``)
                 .setColor('RED')
                 .setFooter(message.author.username, message.author.avatarURL({ dynamic: true }))
                 .setTimestamp()
         ] }).catch(() => {});
         
-        x.ban({reason: `${reason} (par ${message.author.tag}, ${message.author.id})`}).catch(() => {total--});
+        x.ban({reason: `${reason} (by ${message.author.tag}, ${message.author.id})`}).catch(() => {total--});
+        //Ban members
     });
 
-    message.channel.send({ content: `J'ai banni ${total} membres sur un total de ${members.length} membres sélectionnés` });
+    message.channel.send({ content: `banned ${total} members from ${members.length} selected members` });
 }
